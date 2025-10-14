@@ -1,0 +1,104 @@
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'net.neoforged.gradle.userdev' version '7.0.192'
+}
+
+// Définition des versions
+version = "1.21.10-7.0.0"
+group = "org.millenaire"
+base {
+    archivesName = "millenaire"
+}
+
+// Java 21 requis pour Minecraft 1.21.10
+java.toolchain.languageVersion = JavaLanguageVersion.of(21)
+
+// Configuration des exécutions - VERSION CORRIGÉE
+runs {
+    // Configuration commune à toutes les exécutions
+    configureEach {
+        systemProperty 'forge.logging.markers', 'REGISTRIES'
+        systemProperty 'forge.logging.console.level', 'debug'
+        modSource project.sourceSets.main
+    }
+
+    client {
+        systemProperty 'neoforge.enabledGameTestNamespaces', 'millenaire'
+    }
+
+    server {
+        systemProperty 'neoforge.enabledGameTestNamespaces', 'millenaire'
+        programArgument '--nogui'
+    }
+
+    gameTestServer {
+        systemProperty 'neoforge.enabledGameTestNamespaces', 'millenaire'
+    }
+
+    // SUPPRIMER la section clientData qui cause l'erreur
+    // data {
+    //     workingDirectory project.file('run-data')
+    //     args '--mod', 'millenaire', '--all', '--output', file('src/generated/resources/'), '--existing', file('src/main/resources/')
+    // }
+}
+
+// Inclure les ressources générées (optionnel)
+sourceSets.main.resources { srcDir 'src/generated/resources' }
+
+// Configuration des dépendances
+dependencies {
+    implementation "net.neoforged:neoforge:${neo_version}"
+    
+    // Dépendances optionnelles pour Millénaire
+    // runtimeOnly "some.mod:modid:version"
+}
+
+// Traitement des ressources avec expansion des variables
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+        minecraft_version: minecraft_version,
+        minecraft_version_range: minecraft_version_range,
+        neo_version: neo_version,
+        neo_version_range: neo_version_range,
+        loader_version_range: loader_version_range,
+        mod_id: mod_id,
+        mod_name: mod_name,
+        mod_license: mod_license,
+        mod_version: mod_version,
+        mod_authors: mod_authors,
+        mod_description: mod_description
+    ]
+    inputs.properties replaceProperties
+
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
+    }
+}
+
+// Configuration de la publication
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            url "file://${project.projectDir}/repo"
+        }
+    }
+}
+
+// Encodage UTF-8 pour la compilation
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// Configuration IDEA
+idea {
+    module {
+        downloadSources = true
+        downloadJavadoc = true
+    }
+}

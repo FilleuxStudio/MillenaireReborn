@@ -1,0 +1,31 @@
+modLoader = "javafml"
+loaderVersion = "[4,)"
+license = "All rights reserved"
+
+[[mods]]
+modId = "millenaire"
+version = "${mod_version}"
+displayName = "${mod_name}"
+description = "${mod_description}"
+authors = "${mod_authors}"
+credits = "The entire Millenaire Community for being patient and amazing\nBoss - The current developer of the mod\nGalianRyu - Reviving the project & a large portion of the code\nKinniken - Original Author\nZoythrus - Community Manager\nRasseru - Japanese Culture\nTiclon - Byzantine Culture\nFelinoel - Inuit Culture"
+
+# Lien vers la page du mod
+displayURL = "http://www.millenaire.org"
+
+# Logo (optionnel - à créer plus tard)
+# logoFile = "millenaire.png"
+
+[[dependencies.millenaire]]
+modId = "neoforge"
+versionRange = "${neo_version_range}"
+mandatory = true
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.millenaire]]
+modId = "minecraft"
+versionRange = "${minecraft_version_range}"
+mandatory = true
+ordering = "NONE"
+side = "BOTH"

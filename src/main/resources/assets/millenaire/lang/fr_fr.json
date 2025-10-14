@@ -1,0 +1,33 @@
+{
+  "itemGroup.millenaire": "Millénaire",
+  
+  "block.millenaire.decorative_stone": "Pierre Décorative",
+  "block.millenaire.decorative_wood": "Bois Décoratif",
+  "block.millenaire.decorative_earth": "Terre Décorative",
+  "block.millenaire.sod_planks": "Planches de Gazon",
+  "block.millenaire.empty_sericulture": "Sériculture Vide",
+  "block.millenaire.mud_brick": "Briques de Boue",
+  "block.millenaire.byzantine_tile": "Tuile Byzantine",
+  "block.millenaire.byzantine_stone_tile": "Tuile de Pierre Byzantine",
+  "block.millenaire.paper_wall": "Mur de Papier",
+  "block.millenaire.inuit_carving": "Sculpture",
+  "block.millenaire.mill_chest": "Coffre Millénaire",
+  "block.millenaire.mill_sign": "Panneau Millénaire",
+  "block.millenaire.alchemists": "Pierre d'Alchimiste",
+  "block.millenaire.mill_path": "Chemin Millénaire",
+  "block.millenaire.galianite_ore": "Minerai de Galianite",
+  "block.millenaire.village_stone": "Pierre de Village",
+  "block.millenaire.stored_position": "Position Stockée",
+  
+  "block.millenaire.crop_turmeric": "Curcuma",
+  "block.millenaire.crop_rice": "Riz",
+  "block.millenaire.crop_maize": "Maïs",
+  "block.millenaire.crop_grape_vine": "Vignes",
+  
+  "container.millChestLocked": "Coffre Millénaire - Verrouillé",
+  "container.millChestDoubleLocked": "Grand Coffre Millénaire - Verrouillé",
+  "container.millChestUnlocked": "Coffre Millénaire - Déverrouillé",
+  "container.millChestDoubleUnlocked": "Grand Coffre Millénaire - Déverrouillé",
+  
+  "gui.millConfig.mainTitle": "Configuration Millénaire"
+}

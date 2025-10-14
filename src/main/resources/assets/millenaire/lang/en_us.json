@@ -1,0 +1,33 @@
+{
+  "itemGroup.millenaire": "Millénaire",
+  
+  "block.millenaire.decorative_stone": "Decorative Stone",
+  "block.millenaire.decorative_wood": "Decorative Wood",
+  "block.millenaire.decorative_earth": "Decorative Earth",
+  "block.millenaire.sod_planks": "Sod Planks",
+  "block.millenaire.empty_sericulture": "Empty Sericulture",
+  "block.millenaire.mud_brick": "Mud Bricks",
+  "block.millenaire.byzantine_tile": "Byzantine Tile",
+  "block.millenaire.byzantine_stone_tile": "Byzantine Stone Tile",
+  "block.millenaire.paper_wall": "Paper Wall",
+  "block.millenaire.inuit_carving": "Carving",
+  "block.millenaire.mill_chest": "Millénaire Chest",
+  "block.millenaire.mill_sign": "Millénaire Sign",
+  "block.millenaire.alchemists": "Alchemist's Block",
+  "block.millenaire.mill_path": "Millénaire Path",
+  "block.millenaire.galianite_ore": "Galianite Ore",
+  "block.millenaire.village_stone": "Village Stone",
+  "block.millenaire.stored_position": "Stored Position",
+  
+  "block.millenaire.crop_turmeric": "Turmeric",
+  "block.millenaire.crop_rice": "Rice",
+  "block.millenaire.crop_maize": "Maize",
+  "block.millenaire.crop_grape_vine": "Grape Vines",
+  
+  "container.millChestLocked": "Millénaire Chest - Locked",
+  "container.millChestDoubleLocked": "Millénaire Large Chest - Locked",
+  "container.millChestUnlocked": "Millénaire Chest - Unlocked",
+  "container.millChestDoubleUnlocked": "Millénaire Large Chest - Unlocked",
+  
+  "gui.millConfig.mainTitle": "Millénaire Configuration"
+}
