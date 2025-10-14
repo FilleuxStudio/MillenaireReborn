@@ -6,6 +6,7 @@ import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -35,6 +36,10 @@ public class StoredPosition extends Block {
             .isViewBlocking((state, level, pos) -> false)
         );
         this.registerDefaultState(this.stateDefinition.any().setValue(VARIANT, EnumType.TRADEPOS));
+    }
+
+        public StoredPosition(BlockBehaviour.Properties properties) {
+        super(properties);
     }
 
     @Override

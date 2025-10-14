@@ -2,6 +2,7 @@ package org.millenaire.common.blocks;
 
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.EnumProperty;
@@ -10,7 +11,7 @@ import net.minecraft.world.level.material.MapColor;
 public class BlockDecorativeSodPlank extends Block {
     public static final EnumProperty<EnumType> VARIANT = EnumProperty.create("variant", EnumType.class);
 
-    public BlockDecorativeSodPlank() {
+    public BlockDecorativeSodPlank(BlockBehaviour.Properties properties) {
         super(Properties.of()
             .mapColor(MapColor.WOOD)
             .strength(2.0F, 15.0F)

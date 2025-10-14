@@ -3,7 +3,7 @@ package org.millenaire;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.millenaire.blocks.MillBlocks;
+import org.millenaire.comme.blocks.MillBlocks;
 import org.millenaire.building.BuildingLocation;
 
 import net.minecraft.block.Block;

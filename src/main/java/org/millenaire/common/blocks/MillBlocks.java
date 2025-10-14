@@ -4,12 +4,12 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.Blocks;
-import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.material.MapColor;
 import net.neoforged.neoforge.registries.DeferredRegister;
-import net.neoforged.neoforge.registries.DeferredBlock;
+import net.neoforged.neoforge.registries.DeferredHolder; // Utilisation de DeferredHolder pour la clarté
+
 import org.millenaire.common.entities.TileEntityMillChest;
 import org.millenaire.common.entities.TileEntityMillSign;
 import org.millenaire.common.entities.TileEntityVillageStone;
@@ -17,117 +17,160 @@ import org.millenaire.common.entities.TileEntityVillageStone;
 import java.util.function.Supplier;
 
 public class MillBlocks {
+    // Les DeferredRegister doivent être publics et statiques (Correct)
     public static final DeferredRegister.Blocks BLOCKS = DeferredRegister.createBlocks("millenaire");
     public static final DeferredRegister<BlockEntityType<?>> BLOCK_ENTITIES = DeferredRegister.create(Registries.BLOCK_ENTITY_TYPE, "millenaire");
     public static final DeferredRegister<Item> ITEMS = DeferredRegister.createItems("millenaire");
 
-    // Décoratifs
-    public static final DeferredBlock<Block> DECORATIVE_STONE = BLOCKS.registerBlock("decorative_stone", 
-        BlockDecorativeStone::new, BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 6.0F));
-    
-    public static final DeferredBlock<Block> DECORATIVE_WOOD = BLOCKS.registerBlock("decorative_wood", 
-        BlockDecorativeWood::new, BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F));
-    
-    public static final DeferredBlock<Block> DECORATIVE_EARTH = BLOCKS.registerBlock("decorative_earth", 
-        BlockDecorativeEarth::new, BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F));
-    
-    public static final DeferredBlock<Block> SOD_PLANKS = BLOCKS.registerBlock("sod_planks", 
-        BlockDecorativeSodPlank::new, BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 15.0F));
-    
-    public static final DeferredBlock<Block> EMPTY_SERICULTURE = BLOCKS.registerBlock("empty_sericulture",
-        () -> new BlockDecorativeUpdate(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD), 
-            DECORATIVE_WOOD.get().defaultBlockState()),
-        BlockBehaviour.Properties.of().mapColor(MapColor.WOOD));
-    
-    public static final DeferredBlock<Block> MUD_BRICK = BLOCKS.registerBlock("mud_brick",
-        () -> new BlockDecorativeUpdate(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT), 
-            DECORATIVE_EARTH.get().defaultBlockState()),
-        BlockBehaviour.Properties.of().mapColor(MapColor.DIRT));
+    /**
+     * Helper pour enregistrer le bloc ET son BlockItem standard.
+     * Les blocs utilisant cette méthode DOIVENT utiliser un BlockItem simple.
+     */
+    private static <T extends Block> DeferredHolder<Block, T> registerBlockWithSimpleItem(final String name, final Supplier<T> blockSupplier) {
+        DeferredHolder<Block, T> block = BLOCKS.register(name, blockSupplier);
+        // Enregistre l'ItemBlock correspondant
+        ITEMS.register(name, () -> new BlockItem(block.get(), new Item.Properties()));
+        return block;
+    }
 
-    // Dalles et escaliers
-    public static final DeferredBlock<Block> THATCH_SLAB = BLOCKS.registerBlock("thatch_slab",
-        () -> new BlockOrientedSlab(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD), THATCH_SLAB.get()),
-        BlockBehaviour.Properties.of().mapColor(MapColor.WOOD));
+    // --- Décoratifs ---
     
-    public static final DeferredBlock<Block> THATCH_SLAB_DOUBLE = BLOCKS.registerBlock("thatch_slab_double",
-        () -> new BlockOrientedSlab(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD), THATCH_SLAB.get()),
-        BlockBehaviour.Properties.of().mapColor(MapColor.WOOD));
+    // CORRECTION : S'assure que BlockDecorativeStone::new reçoit les propriétés via le Supplier.
+    public static final DeferredHolder<Block, Block> DECORATIVE_STONE = registerBlockWithSimpleItem("decorative_stone", 
+        () -> new BlockDecorativeStone(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 6.0F)));
     
-    public static final DeferredBlock<Block> THATCH_STAIRS = BLOCKS.registerBlock("thatch_stairs",
-        () -> new BlockDecorativeOrientedStairs(DECORATIVE_WOOD.get().defaultBlockState(), 
-            BlockBehaviour.Properties.of().mapColor(MapColor.WOOD)),
-        BlockBehaviour.Properties.of().mapColor(MapColor.WOOD));
+    public static final DeferredHolder<Block, Block> DECORATIVE_WOOD = registerBlockWithSimpleItem("decorative_wood", 
+        () -> new BlockDecorativeWood(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F)));
+    
+    public static final DeferredHolder<Block, Block> DECORATIVE_EARTH = registerBlockWithSimpleItem("decorative_earth", 
+        () -> new BlockDecorativeEarth(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F)));
+    
+    public static final DeferredHolder<Block, Block> SOD_PLANKS = registerBlockWithSimpleItem("sod_planks", 
+        () -> new BlockDecorativeSodPlank(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F, 15.0F)));
+    
+    // BlockDecorativeUpdate nécessite la BlockState par défaut en argument.
+    public static final DeferredHolder<Block, Block> EMPTY_SERICULTURE = registerBlockWithSimpleItem("empty_sericulture",
+        () -> new BlockDecorativeUpdate(
+            BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F),
+            DECORATIVE_WOOD.get().defaultBlockState())
+    );
+    
+    public static final DeferredHolder<Block, Block> MUD_BRICK = registerBlockWithSimpleItem("mud_brick",
+        () -> new BlockDecorativeUpdate(
+            BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F),
+            DECORATIVE_EARTH.get().defaultBlockState())
+    );
 
-    // Byzantins
-    public static final DeferredBlock<Block> BYZANTINE_TILE = BLOCKS.registerBlock("byzantine_tile",
-        () -> new BlockDecorativeOriented(BlockBehaviour.Properties.of().mapColor(MapColor.STONE)),
-        BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
-    
-    public static final DeferredBlock<Block> BYZANTINE_STONE_TILE = BLOCKS.registerBlock("byzantine_stone_tile",
-        () -> new BlockDecorativeOriented(BlockBehaviour.Properties.of().mapColor(MapColor.STONE)),
-        BlockBehaviour.Properties.of().mapColor(MapColor.STONE));
+    // --- Dalles et escaliers ---
+    // NOTE : Ces blocs utilisaient des ItemBlock personnalisés dans la 1.12.2  (ItemOrientedSlab). 
+    // J'utilise le BlockItem standard ici, mais vous devrez migrer la logique personnalisée d'ItemOrientedSlab si elle est critique.
 
-    // Cultures
-    public static final DeferredBlock<Block> CROP_TURMERIC = BLOCKS.registerBlock("crop_turmeric",
-        () -> new BlockMillCrops(false, false, null), // Ajouter la seed appropriée
-        BlockBehaviour.Properties.of().mapColor(MapColor.PLANT).noCollission().randomTicks().instabreak());
-    
-    public static final DeferredBlock<Block> CROP_RICE = BLOCKS.registerBlock("crop_rice",
-        () -> new BlockMillCrops(true, false, null),
-        BlockBehaviour.Properties.of().mapColor(MapColor.PLANT).noCollission().randomTicks().instabreak());
+    // THATCH SLAB (Half)
+    public static final DeferredHolder<Block, Block> THATCH_SLAB = BLOCKS.register("thatch_slab",
+        () -> new BlockOrientedSlab(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F), THATCH_SLAB.get())
+    );
+    // THATCH SLAB DOUBLE (Full) - N'a pas d'ItemBlock.
+    public static final DeferredHolder<Block, Block> THATCH_SLAB_DOUBLE = BLOCKS.register("thatch_slab_double",
+        () -> new BlockOrientedSlab(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F), THATCH_SLAB.get())
+    );
+    // Enregistrement de l'ItemBlock pour le THATCH_SLAB
+    public static final DeferredHolder<Item, Item> THATCH_SLAB_ITEM = ITEMS.register("thatch_slab", 
+        () -> new BlockItem(THATCH_SLAB.get(), new Item.Properties())
+    ); 
 
-    // Coffres et signes
-    public static final DeferredBlock<Block> MILL_CHEST = BLOCKS.registerBlock("mill_chest",
-        BlockMillChest::new, BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0F, 6000000.0F));
-    
-    public static final DeferredBlock<Block> MILL_SIGN = BLOCKS.registerBlock("mill_sign",
-        BlockMillSign::new, BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).noCollission().strength(1.0F));
+    public static final DeferredHolder<Block, Block> THATCH_STAIRS = registerBlockWithSimpleItem("thatch_stairs",
+        () -> new BlockDecorativeOrientedStairs(
+            DECORATIVE_WOOD.get().defaultBlockState(), 
+            BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(2.0F))
+    );
 
-    // Alchimistes et chemins
-    public static final DeferredBlock<Block> ALCHEMISTS = BLOCKS.registerBlock("alchemists",
-        BlockAlchemists::new, BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1.0F, 6000000.0F));
-    
-    public static final DeferredBlock<Block> MILL_PATH = BLOCKS.registerBlock("mill_path",
-        BlockMillPath::new, BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F));
-    
-    public static final DeferredBlock<Block> MILL_PATH_SLAB = BLOCKS.registerBlock("mill_path_slab",
-        BlockMillPathSlabHalf::new, BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F));
-    
-    public static final DeferredBlock<Block> MILL_PATH_SLAB_DOUBLE = BLOCKS.registerBlock("mill_path_slab_double",
-        BlockMillPathSlabDouble::new, BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F));
+    // --- Byzantins ---
 
-    // Minerais et pierres de village
-    public static final DeferredBlock<Block> GALIANITE_ORE = BLOCKS.registerBlock("galianite_ore",
-        () -> new BlockMillOre(BlockMillOre.EnumMillOre.GALIANITE),
-        BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F, 3.0F));
+    public static final DeferredHolder<Block, Block> BYZANTINE_TILE = registerBlockWithSimpleItem("byzantine_tile",
+        () -> new BlockDecorativeOriented(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 6.0F))
+    );
     
-    public static final DeferredBlock<Block> VILLAGE_STONE = BLOCKS.registerBlock("village_stone",
-        BlockVillageStone::new, BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1.0F, 6000000.0F));
+    public static final DeferredHolder<Block, Block> BYZANTINE_STONE_TILE = registerBlockWithSimpleItem("byzantine_stone_tile",
+        () -> new BlockDecorativeOriented(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(1.5F, 6.0F))
+    );
 
-    // Position stockée
-    public static final DeferredBlock<Block> STORED_POSITION = BLOCKS.registerBlock("stored_position",
-        StoredPosition::new, BlockBehaviour.Properties.of().mapColor(MapColor.NONE).noCollission().noLootTable());
+    // --- Cultures ---
+    // CORRECTION : Les cultures n'ont pas d'ItemBlock (n'utilisent pas registerBlockWithSimpleItem).
+    // NOTE : BlockMillCrops(boolean, boolean, Item)  – Le troisième argument doit être la graine (seed item).
+    public static final DeferredHolder<Block, Block> CROP_TURMERIC = BLOCKS.register("crop_turmeric",
+        () -> new BlockMillCrops(false, false, null) // 'null' doit être remplacé par le Supplier de la graine
+    );
 
-    // Block Entities
-    public static final Supplier<BlockEntityType<TileEntityMillChest>> MILL_CHEST_BLOCK_ENTITY = 
+    public static final DeferredHolder<Block, Block> CROP_RICE = BLOCKS.register("crop_rice",
+        () -> new BlockMillCrops(true, false, null) // 'null' doit être remplacé par le Supplier de la graine
+    );
+
+    // --- Coffres et signes ---
+    
+    public static final DeferredHolder<Block, Block> MILL_CHEST = registerBlockWithSimpleItem("mill_chest",
+        () -> new BlockMillChest(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).strength(-1.0F, 6000000.0F))
+    );
+    
+    public static final DeferredHolder<Block, Block> MILL_SIGN = registerBlockWithSimpleItem("mill_sign",
+        () -> new BlockMillSign(BlockBehaviour.Properties.of().mapColor(MapColor.WOOD).noCollission().strength(1.0F))
+    );
+
+    // --- Alchimistes et chemins ---
+
+    public static final DeferredHolder<Block, Block> ALCHEMISTS = registerBlockWithSimpleItem("alchemists",
+        () -> new BlockAlchemists(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1.0F, 6000000.0F))
+    );
+    
+    // NOTE : Les chemins utilisaient un ItemMillPath personnalisé, on gère le bloc et l'item séparément.
+    public static final DeferredHolder<Block, Block> MILL_PATH = BLOCKS.register("mill_path",
+        () -> new BlockMillPath(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F))
+    );
+    public static final DeferredHolder<Item, Item> MILL_PATH_ITEM = ITEMS.register("mill_path", 
+        // L'ItemBlock personnalisé doit être migré ici, je laisse BlockItem standard pour la compilation.
+        () -> new BlockItem(MILL_PATH.get(), new Item.Properties())
+    );
+
+    public static final DeferredHolder<Block, Block> MILL_PATH_SLAB = BLOCKS.register("mill_path_slab",
+        () -> new BlockMillPathSlabHalf(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F))
+    );
+    public static final DeferredHolder<Block, Block> MILL_PATH_SLAB_DOUBLE = BLOCKS.register("mill_path_slab_double",
+        () -> new BlockMillPathSlabDouble(BlockBehaviour.Properties.of().mapColor(MapColor.DIRT).strength(0.5F))
+    );
+    public static final DeferredHolder<Item, Item> MILL_PATH_SLAB_ITEM = ITEMS.register("mill_path_slab", 
+        // L'ItemBlock personnalisé doit être migré ici.
+        () -> new BlockItem(MILL_PATH_SLAB.get(), new Item.Properties())
+    );
+
+    // --- Minerais et pierres de village ---
+    
+    // CORRECTION : Ajuste le constructeur pour inclure les propriétés.
+    public static final DeferredHolder<Block, Block> GALIANITE_ORE = registerBlockWithSimpleItem("galianite_ore",
+        () -> new BlockMillOre(BlockMillOre.EnumMillOre.GALIANITE, BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(3.0F, 3.0F))
+    );
+    
+    public static final DeferredHolder<Block, Block> VILLAGE_STONE = registerBlockWithSimpleItem("village_stone",
+        () -> new BlockVillageStone(BlockBehaviour.Properties.of().mapColor(MapColor.STONE).strength(-1.0F, 6000000.0F))
+    );
+
+    // --- Position stockée ---
+    // Pas d'ItemBlock pour ce bloc (conformément à l'ancien code ).
+    public static final DeferredHolder<Block, Block> STORED_POSITION = BLOCKS.register("stored_position",
+        () -> new StoredPosition(BlockBehaviour.Properties.of().mapColor(MapColor.NONE).noCollission().noLootTable())
+    );
+
+    // --- Block Entities ---
+    // Les types de retour ont été ajustés pour utiliser DeferredHolder et correspondre à la nouvelle API.
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TileEntityMillChest>> MILL_CHEST_BLOCK_ENTITY = 
         BLOCK_ENTITIES.register("mill_chest", 
             () -> BlockEntityType.Builder.of(TileEntityMillChest::new, MILL_CHEST.get()).build(null));
     
-    public static final Supplier<BlockEntityType<TileEntityMillSign>> MILL_SIGN_BLOCK_ENTITY = 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TileEntityMillSign>> MILL_SIGN_BLOCK_ENTITY = 
         BLOCK_ENTITIES.register("mill_sign",
             () -> BlockEntityType.Builder.of(TileEntityMillSign::new, MILL_SIGN.get()).build(null));
     
-    public static final Supplier<BlockEntityType<TileEntityVillageStone>> VILLAGE_STONE_BLOCK_ENTITY = 
+    public static final DeferredHolder<BlockEntityType<?>, BlockEntityType<TileEntityVillageStone>> VILLAGE_STONE_BLOCK_ENTITY = 
         BLOCK_ENTITIES.register("village_stone",
             () -> BlockEntityType.Builder.of(TileEntityVillageStone::new, VILLAGE_STONE.get()).build(null));
-
-    // Items pour les blocs
-    static {
-        // Enregistrement automatique des BlockItems pour les blocs simples
-        BLOCKS.getEntries().forEach(block -> {
-            if (block != STORED_POSITION) { // Exclure les blocs spéciaux
-                ITEMS.register(block.getId().getPath(), () -> new BlockItem(block.get(), new Item.Properties()));
-            }
-        });
-    }
+    
+    // Le bloc 'static' de fin a été retiré, sa logique étant déplacée dans registerBlockWithSimpleItem.
 }

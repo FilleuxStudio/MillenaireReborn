@@ -2,8 +2,8 @@ package org.millenaire;
 
 import java.util.Random;
 
-import org.millenaire.gui.MillAchievement;
-import org.millenaire.items.MillItems;
+import org.millenaire.client.gui.MillAchievement;
+import org.millenaire.common.items.MillItems;
 
 import net.minecraft.block.Block;
 import net.minecraft.entity.player.EntityPlayer;

@@ -2,7 +2,7 @@ package org.millenaire.common.blocks;
 
 import net.minecraft.util.StringRepresentable;
 import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.BlockBehaviour;
 import net.minecraft.world.level.material.MapColor;
 
 public class BlockMillOre extends Block {
@@ -15,6 +15,13 @@ public class BlockMillOre extends Block {
             .requiresCorrectToolForDrops()
         );
         this.oreType = oretype;
+    }
+
+      public BlockMillOre(EnumMillOre oretype, BlockBehaviour.Properties properties) {
+        super(properties); // On passe les propriétés au constructeur de la classe mère
+        this.oreType = oretype; // On stocke l'Enum
+        
+        // Toutes les propriétés (mapColor, strength, etc.) sont définies dans MillBlocks
     }
     
     public static enum EnumMillOre implements StringRepresentable {
