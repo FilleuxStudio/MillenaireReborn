@@ -13,7 +13,6 @@ import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.server.ServerStartingEvent;
 import net.neoforged.neoforge.registries.DeferredRegister;
 import org.millenaire.common.blocks.MillBlocks;
-import org.millenaire.common.entities.MillEntities;
 import org.millenaire.common.items.MillItems;
 
 import java.util.ArrayList;

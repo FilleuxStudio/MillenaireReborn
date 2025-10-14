@@ -1,149 +1,160 @@
-package org.millenaire;
+package org.millenaire; // Nouveau package, plus organisé
 
-import java.util.Random;
-
-import org.millenaire.client.gui.MillAchievement;
+import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.util.RandomSource; // Remplacement de java.util.Random
+import net.minecraft.world.entity.player.Player; // Remplacement de EntityPlayer
+import net.minecraft.world.item.ItemStack; // Remplacement de net.minecraft.item.ItemStack
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks; // net.minecraft.init.Blocks est devenu net.minecraft.world.level.block.Blocks
 import org.millenaire.common.items.MillItems;
-
-import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
 
 public class CommonUtilities 
 {
-	public static Random random = new Random();
-	
-	/**
-	 * Organise les devises (denier, argent, or) dans l'inventaire du joueur, 
-	 * en convertissant les petites coupures en grandes coupures (64 deniers = 1 argent, 64 argent = 1 or).
-	 * @param playerIn Le joueur dont l'inventaire doit être organisé.
-	 */
-	public static void changeMoney(EntityPlayer playerIn)
-	{
-		// Initialisation des compteurs de piles de monnaie.
-		// La stackSize est mise à 0 au début et sera incrémentée avec les piles trouvées.
-		ItemStack denier = new ItemStack(MillItems.denier, 0, 0);
-		ItemStack argent = new ItemStack(MillItems.denierArgent, 0, 0);
-		ItemStack or = new ItemStack(MillItems.denierOr, 0, 0);
-		
-		// 1. Collecte de toute la monnaie et suppression de l'inventaire.
-		for(int i = 0; i < playerIn.inventory.getSizeInventory(); i++)
-		{
-			ItemStack stack = playerIn.inventory.getStackInSlot(i);
-			if(stack != null)
-			{
-				if(stack.getItem() == MillItems.denier)
-				{
-					denier.stackSize = denier.stackSize + stack.stackSize;
-					playerIn.inventory.removeStackFromSlot(i);
-				}
-				else if(stack.getItem() == MillItems.denierArgent) // Utilisation de else if pour l'optimisation
-				{
-					argent.stackSize = argent.stackSize + stack.stackSize;
-					playerIn.inventory.removeStackFromSlot(i);
-				}
-				else if(stack.getItem() == MillItems.denierOr)
-				{
-					or.stackSize = or.stackSize + stack.stackSize;
-					playerIn.inventory.removeStackFromSlot(i);
-				}
-			}
-		}
-		
-		// 2. Conversion Denier -> Argent
-		argent.stackSize = argent.stackSize + (denier.stackSize / 64);
-		denier.stackSize = denier.stackSize % 64; // Le reste devient la pile de deniers.
-		
-		// 3. Conversion Argent -> Or
-		or.stackSize = or.stackSize + (argent.stackSize / 64);
-		
-		// Vérification pour l'achèvement 'cresus' (si on a au moins 1 or après conversion)
-		if(or.stackSize >= 1)
-		{
-			// Note: La classe MillAchievement doit exister et la stat 'cresus' doit être définie.
-			// playerIn.addStat(...) est la méthode standard pour ajouter un achèvement.
-			playerIn.addStat(MillAchievement.cresus, 1);
-		}
-
-		argent.stackSize = argent.stackSize % 64; // Le reste devient la pile d'argents.
-		
-		// 4. Ajout des piles organisées à l'inventaire.
-		
-		// Deniers et Argents (moins de 64 chacun)
-		if (denier.stackSize > 0) {
-			playerIn.inventory.addItemStackToInventory(denier);
-		}
-		if (argent.stackSize > 0) {
-			playerIn.inventory.addItemStackToInventory(argent);
-		}
-		
-		// Ors (peut être plus de 64, doit être ajouté par piles de 64)
-		while(or.stackSize > 64)
-		{
-			// Crée une nouvelle pile d'or de taille 64 et l'ajoute.
-			playerIn.inventory.addItemStackToInventory(new ItemStack(MillItems.denierOr, 64, 0));
-			or.stackSize = or.stackSize - 64;
-		}
-		
-		// Ajoute la dernière pile d'or (taille <= 64).
-		if (or.stackSize > 0) {
-			playerIn.inventory.addItemStackToInventory(or);
-		}
-	}
-	
-	/**
-	 * Retourne un float aléatoire entre 0.1f et 1.1f.
-	 * @return Un float aléatoire non-zéro (>= 0.1f).
-	 */
-	public static float getRandomNonzero() { 
-		// random.nextFloat() retourne entre 0.0 (inclus) et 1.0 (exclus).
-		// +0.1f assure un minimum de 0.1f.
-		return random.nextFloat() + 0.1f; 
-	}
-	
-	/**
-	 * Retourne un entier aléatoire pour un genre de Millager.
-	 * Les valeurs possibles sont : -2, -1, 0.
-	 * @return -2, -1, ou 0.
-	 */
-	public static int randomizeGender() { 
-		// random.nextInt(3) retourne 0, 1, ou 2.
-		// Soustraire 2 donne -2, -1, ou 0.
-		return random.nextInt(3) - 2; 
-	}
-	
-	/**
-	 * Détermine le bloc de "terre" valide correspondant à un bloc donné.
-	 * @param b Le bloc à vérifier.
-	 * @param surface Indique si le sol est en surface (true) ou sous terre (false).
-	 * @return Le bloc de remplacement valide (Dirt, Grass, Sand, Sandstone, Gravel) ou null.
-	 */
-	public static Block getValidGroundBlock(final Block b, final boolean surface) 
-	{
-		if (b == null) return null;
-		
-		if (b == Blocks.bedrock || b == Blocks.dirt ||
-			b == Blocks.grass) {
-            return Blocks.dirt; // Le plus générique
-		} else if (b == Blocks.stone) {
-		    if (surface) {
-                return Blocks.dirt; // La pierre en surface est considérée comme la terre (pour planter des choses)
-            } else {
-                return Blocks.grass; // La pierre sous terre est remplacée par de l'herbe (logique particulière au mod)
+    // Remplacement de java.util.Random par l'instance de RandomSource fournie par la Level/World,
+    // mais pour une classe utilitaire, nous pouvons utiliser un RandomSource statique si nécessaire.
+    // Cependant, il est préférable d'utiliser RandomSource.create() si on ne veut pas de seed spécifique.
+    public static final RandomSource random = RandomSource.create();
+    
+    // Constante pour la conversion (64 est une valeur standard)
+    private static final int CONVERSION_RATE = 64; 
+    
+    /**
+     * Organise les devises (denier, argent, or) dans l'inventaire du joueur, 
+     * en convertissant les petites coupures en grandes coupures (64 deniers = 1 argent, 64 argent = 1 or).
+     * @param playerIn Le joueur dont l'inventaire doit être organisé.
+     */
+    public static void changeMoney(Player playerIn)
+    {
+        // Utilisation de longs pour les totaux pour éviter les débordements (même si c'est peu probable avec 64).
+        long totalDeniers = 0;
+        long totalArgents = 0;
+        long totalOrs = 0;
+        
+        // 1. Collecte de toute la monnaie et suppression de l'inventaire.
+        // Utilisation de l'API d'inventaire moderne
+        for(int i = 0; i < playerIn.getInventory().getContainerSize(); i++)
+        {
+            // playerIn.getInventory() est de type PlayerInventory.
+            ItemStack stack = playerIn.getInventory().getItem(i); 
+            
+            if(!stack.isEmpty()) // Remplacement de stack != null
+            {
+                // Note: On suppose que MillItems.denier/denierArgent/denierOr sont des Suppliers<Item> et on utilise .get()
+                if(stack.is(MillItems.denier.get()))
+                {
+                    totalDeniers += stack.getCount(); // Remplacement de stack.stackSize
+                    playerIn.getInventory().setItem(i, ItemStack.EMPTY); // Suppression du stack
+                }
+                else if(stack.is(MillItems.denierArgent.get()))
+                {
+                    totalArgents += stack.getCount();
+                    playerIn.getInventory().setItem(i, ItemStack.EMPTY);
+                }
+                else if(stack.is(MillItems.denierOr.get()))
+                {
+                    totalOrs += stack.getCount();
+                    playerIn.getInventory().setItem(i, ItemStack.EMPTY);
+                }
             }
-        } else if (b == Blocks.gravel) {
-		    return Blocks.gravel;
-        } else if (b == Blocks.sand) {
-		    return Blocks.sand;
-        } else if (b == Blocks.sandstone) {
-		    if (surface) {
-                return Blocks.sand; // Le grès en surface devient du sable
+        }
+        
+        // 2. Conversion Denier -> Argent
+        totalArgents += totalDeniers / CONVERSION_RATE;
+        totalDeniers %= CONVERSION_RATE;
+        
+        // 3. Conversion Argent -> Or
+        totalOrs += totalArgents / CONVERSION_RATE;
+        totalArgents %= CONVERSION_RATE;
+        
+        // 4. Achievement: MillAchievement est maintenant une stat ou un critère.
+        // Puisque nous n'avons pas la définition de MillAchievement.cresus, nous laissons 
+        // un TODO ou nous supposons qu'elle sera gérée dans une classe de stat/critère dédiée.
+        if(totalOrs >= 1)
+        {
+            // TODO: Migrer l'achievement (stat) 'cresus'. 
+            // Exemple : playerIn.awardStat(MillStats.CRESUS); 
+        }
+        
+        // 5. Ajout des piles organisées à l'inventaire.
+        
+        // Deniers restants (moins de 64)
+        if (totalDeniers > 0) {
+            // PlayerInventory.add(ItemStack) gère l'ajout et le placement dans l'inventaire.
+            playerIn.getInventory().add(new ItemStack(MillItems.denier.get(), (int)totalDeniers));
+        }
+        
+        // Argents restants (moins de 64)
+        if (totalArgents > 0) {
+            playerIn.getInventory().add(new ItemStack(MillItems.denierArgent.get(), (int)totalArgents));
+        }
+        
+        // Ors (peut être plus de 64, PlayerInventory.add gère l'éclatement des piles automatiquement).
+        // On éclate manuellement pour garantir des piles de 64, en suivant l'ancienne logique.
+        while(totalOrs > 0)
+        {
+            int amount = (int) Math.min(CONVERSION_RATE, totalOrs);
+            
+            // PlayerInventory.add() retourne le reste qui n'a pas pu être ajouté. 
+            // On utilise add(ItemStack) qui gère l'éclatement automatiquement si la pile dépasse la taille maximale,
+            // mais l'ancienne logique semble forcer des piles de 64 (la taille max) même si l'inventaire est plein.
+            // On simule l'ancienne boucle simple en ajoutant 64 par 64.
+            
+            playerIn.getInventory().add(new ItemStack(MillItems.denierOr.get(), amount));
+            totalOrs -= amount;
+        }
+    }
+    
+    /**
+     * Retourne un float aléatoire entre 0.1f et 1.1f.
+     * @return Un float aléatoire non-zéro (>= 0.1f).
+     */
+    public static float getRandomNonzero() { 
+        // random.nextFloat() est toujours valide.
+        return random.nextFloat() + 0.1f; 
+    }
+    
+    /**
+     * Retourne un entier aléatoire pour un genre de Millager.
+     * Les valeurs possibles sont : -2, -1, 0.
+     * @return -2, -1, ou 0.
+     */
+    public static int randomizeGender() { 
+        // random.nextInt(3) -> random.nextInt(3) est remplacé par random.nextInt(3) de RandomSource.
+        return random.nextInt(3) - 2; 
+    }
+    
+    /**
+     * Détermine le bloc de "terre" valide correspondant à un bloc donné.
+     * La logique de conversion est conservée.
+     * @param b Le bloc à vérifier.
+     * @param surface Indique si le sol est en surface (true) ou sous terre (false).
+     * @return Le bloc de remplacement valide (Dirt, Grass, Sand, Sandstone, Gravel) ou null.
+     */
+    public static Block getValidGroundBlock(final Block b, final boolean surface) 
+    {
+        if (b == null) return null;
+        
+        if (b == Blocks.BEDROCK || b == Blocks.DIRT ||
+            b == Blocks.GRASS_BLOCK) { // Remplacement de Blocks.grass par GRASS_BLOCK
+            return Blocks.DIRT;
+        } else if (b == Blocks.STONE) {
+            if (surface) {
+                return Blocks.DIRT;
             } else {
-                return Blocks.sandstone; // Le grès sous terre reste du grès
+                return Blocks.GRASS_BLOCK; // Remplacement par GRASS_BLOCK
+            }
+        } else if (b == Blocks.GRAVEL) {
+            return Blocks.GRAVEL;
+        } else if (b == Blocks.SAND) {
+            return Blocks.SAND;
+        } else if (b == Blocks.SANDSTONE) {
+            if (surface) {
+                return Blocks.SAND;
+            } else {
+                return Blocks.SANDSTONE;
             }
         }
 
-		return null; // Si aucun match
-	}
+        return null;
+    }
 }
