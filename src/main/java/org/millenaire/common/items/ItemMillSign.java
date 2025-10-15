@@ -1,7 +1,5 @@
 package org.millenaire.common.items;
 
-import org.millenaire.Millenaire;
-import org.millenaire.common.blocks.BlockMillSign;
 import org.millenaire.common.blocks.MillBlocks;
 
 import net.minecraft.core.BlockPos;
@@ -12,42 +10,41 @@ import net.minecraft.world.item.context.UseOnContext;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class ItemMillSign extends Item
-{
-    public ItemMillSign(Properties properties) { 
+public class ItemMillSign extends Item {
+    
+    public ItemMillSign(Properties properties) {
         super(properties);
     }
 
     @Override
-    public InteractionResult useOn(UseOnContext context)
-    {
-        Level worldIn = context.getLevel();
+    public InteractionResult useOn(UseOnContext context) {
+        Level world = context.getLevel();
         BlockPos pos = context.getClickedPos();
-        Player playerIn = context.getPlayer();
-        BlockState state = worldIn.getBlockState(pos);
-
-        if (context.getClickedFace() == null) {
+        Player player = context.getPlayer();
+        
+        if (player == null) {
             return InteractionResult.FAIL;
         }
-
-        if (!state.getMaterial().isSolid()) {
+        
+        BlockPos placedPos = pos.relative(context.getClickedFace());
+        
+        if (!player.mayUseItemAt(placedPos, context.getClickedFace(), context.getItemInHand())) {
             return InteractionResult.FAIL;
         }
-
-        BlockPos newPos = pos.relative(context.getClickedFace());
-
-        if (!playerIn.mayUseItemAt(newPos, context.getClickedFace(), context.getItemInHand())) {
-            return InteractionResult.FAIL;
-        }
-        else if (worldIn.isClientSide()) {
+        
+        if (world.isClientSide()) {
             return InteractionResult.SUCCESS;
         }
-        else {
-            worldIn.setBlock(newPos, MillBlocks.BLOCK_MILL_SIGN.get().defaultBlockState()
-                    .setValue(BlockMillSign.FACING, context.getClickedFace()), 3);
-
+        
+        // Logique de placement du signe
+        BlockState signState = MillBlocks.BLOCK_MILL_SIGN.get().defaultBlockState();
+        // Vous devrez configurer l'état du bloc selon la direction
+        
+        if (world.setBlock(placedPos, signState, 3)) {
             context.getItemInHand().shrink(1);
             return InteractionResult.SUCCESS;
         }
+        
+        return InteractionResult.FAIL;
     }
 }
