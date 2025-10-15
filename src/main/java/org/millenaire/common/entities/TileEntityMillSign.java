@@ -1,53 +1,111 @@
 package org.millenaire.common.entities;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.HolderLookup;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.entity.BlockEntity;
 import net.minecraft.world.level.block.entity.SignBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
-import org.millenaire.common.blocks.MillBlockEntities;
+import org.jetbrains.annotations.NotNull;
+
+import java.util.UUID;
 
 public class TileEntityMillSign extends SignBlockEntity {
     public static final int ETAT_CIVIL = 1;
-    public static final int CONSTRUCTIONS = 2;
-    public static final int PROJECTS = 3;
-    public static final int HOUSE = 4;
-    public static final int RESOURCES = 5;
-    public static final int ARCHIVES = 6;
-    public static final int VILLAGE_MAP = 7;
-    public static final int MILITARY = 8;
-    public static final int TRADE_GOODS = 9;
-    public static final int INN_VISITORS = 10;
-    public static final int MARKET_MERCHANTS = 11;
-    public static final int CONTROLLED_PROJECTS = 12;
-    public static final int CONTROLLED_MILITARY = 13;
+    // ... autres constantes
 
-    private int thisSignType = 0;
+    private int signType = 0;
     private BlockPos villageStoneLocation;
+    private UUID villageId;
 
     public TileEntityMillSign(BlockPos pos, BlockState state) {
-        super(MillBlockEntities.MILL_SIGN.get(), pos, state);
+        super(ModBlockEntities.MILL_SIGN.get(), pos, state);
+    }
+
+    public boolean onClicked(Player player) {
+        if (player.level().isClientSide()) {
+            return true;
+        }
+        return executeCommand(player);
     }
 
     public boolean executeCommand(Player player) {
-        // Display GuiPanel with appropriate info based on SignType
+        if (level != null && !level.isClientSide()) {
+            // Logique des panneaux
+            return true;
+        }
         return false;
     }
 
-    public void setSignType(int typeIn) { 
-        thisSignType = typeIn; 
+    public void setSignType(int type) {
+        this.signType = type;
+        setChanged();
     }
 
-    public static void tick(org.minecraft.world.level.Level level, BlockPos pos, BlockState state, TileEntityMillSign sign) {
-        if (sign.villageStoneLocation != null) {
-            // Update sign text based on village stone data
-            sign.messages[0] = Component.literal("The End is Nigh");
-            // TileEntityVillageStone TEVS = (TileEntityVillageStone) level.getBlockEntity(sign.villageStoneLocation);
-            // if (TEVS != null) {
-            //     sign.messages[1] = Component.literal(TEVS.testVar + " clicks");
-            // }
+    public int getSignType() {
+        return signType;
+    }
+
+    public void setVillageStoneLocation(BlockPos pos) {
+        this.villageStoneLocation = pos;
+        setChanged();
+    }
+
+    public static void tick(Level level, BlockPos pos, BlockState state, TileEntityMillSign sign) {
+        if (level.isClientSide() || sign.villageStoneLocation == null) {
+            return;
+        }
+        sign.updateSignText();
+    }
+
+    private void updateSignText() {
+        if (level == null || villageStoneLocation == null) {
+            return;
+        }
+
+        BlockEntity blockEntity = level.getBlockEntity(villageStoneLocation);
+        if (blockEntity instanceof TileEntityVillageStone villageStone) {
+            // Utilisation des méthodes de SignBlockEntity
+            this.setMessage(0, Component.literal("Population"));
+            this.setMessage(1, Component.literal(villageStone.testVar + " habitants"));
+        }
+    }
+
+    private void setMessage(int i, MutableComponent literal) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'setMessage'");
+    }
+
+    @Override
+    protected void saveAdditional(CompoundTag compound, HolderLookup.Provider registries) {
+        super.saveAdditional(compound, registries);
+        compound.putInt("SignType", signType);
+        if (villageStoneLocation != null) {
+            compound.putInt("VillageStoneX", villageStoneLocation.getX());
+            compound.putInt("VillageStoneY", villageStoneLocation.getY());
+            compound.putInt("VillageStoneZ", villageStoneLocation.getZ());
+        }
+        if (villageId != null) {
+            compound.putUUID("VillageId", villageId);
+        }
+    }
+
+    @Override
+    protected void loadAdditional(CompoundTag compound, HolderLookup.Provider registries) {
+        super.loadAdditional(compound, registries);
+        signType = compound.getInt("SignType");
+        if (compound.contains("VillageStoneX")) {
+            int x = compound.getInt("VillageStoneX");
+            int y = compound.getInt("VillageStoneY");
+            int z = compound.getInt("VillageStoneZ");
+            villageStoneLocation = new BlockPos(x, y, z);
+        }
+        if (compound.contains("VillageId")) {
+            villageId = compound.getUUID("VillageId");
         }
     }
 }
