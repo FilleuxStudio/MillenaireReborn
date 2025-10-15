@@ -18,7 +18,7 @@ import net.minecraft.world.level.block.entity.SpawnerBlockEntity;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.levelgen.feature.Feature;
 import net.minecraft.world.level.levelgen.feature.configurations.TreeConfiguration;
-import org.millenaire.common.CommonUtilities;
+import org.millenaire.CommonUtilities;
 import org.millenaire.common.items.MillItems;
 
 import java.util.List;

@@ -1,202 +1,207 @@
 package org.millenaire;
 
-import net.neoforged.fml.ModLoadingContext;
-import net.neoforged.fml.config.ModConfig;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.ModContainer;
+import net.neoforged.fml.event.config.ModConfigEvent;
 import net.neoforged.neoforge.common.ModConfigSpec;
-import org.apache.commons.lang3.tuple.Pair;
 
 public class MillConfig {
-    // Configuration séparée en Client/Server/Common comme recommandé par NeoForge
-    public static final Client CLIENT;
-    public static final Server SERVER; 
-    public static final Common COMMON;
+    // Configuration values
+    public static ModConfigSpec.BooleanValue LEARN_LANGUAGES;
+    public static ModConfigSpec.BooleanValue VILLAGE_ANNOUNCEMENT;
+    public static ModConfigSpec.BooleanValue DISPLAY_NAMES;
+    public static ModConfigSpec.IntValue NAME_DISTANCE;
+    public static ModConfigSpec.IntValue DIALOGUE_DISTANCE;
     
-    public static final ModConfigSpec CLIENT_SPEC;
-    public static final ModConfigSpec SERVER_SPEC;
-    public static final ModConfigSpec COMMON_SPEC;
+    public static ModConfigSpec.BooleanValue GENERATE_VILLAGES;
+    public static ModConfigSpec.BooleanValue GENERATE_LONE_BUILDINGS;
+    public static ModConfigSpec.IntValue MIN_VILLAGE_DISTANCE;
+    public static ModConfigSpec.IntValue MIN_LONE_DISTANCE;
+    public static ModConfigSpec.IntValue MIN_VILLAGE_LONE_DISTANCE;
+    public static ModConfigSpec.IntValue SPAWN_DISTANCE;
+    
+    public static ModConfigSpec.IntValue LOADED_RADIUS;
+    public static ModConfigSpec.IntValue MIN_BUILDING_DISTANCE;
+    public static ModConfigSpec.IntValue MAX_CHILDREN;
+    public static ModConfigSpec.BooleanValue BUILD_PATHS;
+    public static ModConfigSpec.IntValue VILLAGE_RELATION_DISTANCE;
+    public static ModConfigSpec.IntValue BANDIT_RAID_DISTANCE;
+    public static ModConfigSpec.IntValue RAID_PERCENT_CHANCE;
+    public static ModConfigSpec.ConfigValue<String> FORBIDDEN_BLOCKS;
+    
+    // Static references to the actual values for backward compatibility
+    public static boolean learnLanguages;
+    public static boolean villageAnnouncement;
+    public static boolean displayNames;
+    public static int nameDistance;
+    public static int dialogueDistance;
+    
+    public static boolean generateVillages;
+    public static boolean generateLoneBuildings;
+    public static int minVillageDistance;
+    public static int minLoneDistance;
+    public static int minVillageLoneDistance;
+    public static int spawnDistance;
+    
+    public static int loadedRadius;
+    public static int minBuildingDistance;
+    public static int maxChildren;
+    public static boolean buildPaths;
+    public static int villageRelationDistance;
+    public static int banditRaidDistance;
+    public static int raidPercentChance;
+    public static String forbiddenBlocks;
+    
+    // Config specification
+    public static final ModConfigSpec SPEC;
     
     static {
-        final Pair<Client, ModConfigSpec> clientSpecPair = new ModConfigSpec.Builder().configure(Client::new);
-        final Pair<Server, ModConfigSpec> serverSpecPair = new ModConfigSpec.Builder().configure(Server::new);
-        final Pair<Common, ModConfigSpec> commonSpecPair = new ModConfigSpec.Builder().configure(Common::new);
+        ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
         
-        CLIENT = clientSpecPair.getLeft();
-        SERVER = serverSpecPair.getLeft();
-        COMMON = commonSpecPair.getLeft();
-        CLIENT_SPEC = clientSpecPair.getRight();
-        SERVER_SPEC = serverSpecPair.getRight();
-        COMMON_SPEC = commonSpecPair.getRight();
-    }
-    
-    // Catégories pour organisation
-    public static final String CATEGORY_UI = "uiOptions";
-    public static final String CATEGORY_WORLDGEN = "worldGen";
-    public static final String CATEGORY_VILLAGE = "villageBehavior";
-    
-    public static class Client {
         // UI Options
-        public final ModConfigSpec.BooleanValue learnLanguages;
-        public final ModConfigSpec.BooleanValue displayNames;
-        public final ModConfigSpec.IntValue nameDistance;
-        public final ModConfigSpec.IntValue dialogueDistance;
+        BUILDER.comment("UI Options").push("uioptions");
         
-        public Client(ModConfigSpec.Builder builder) {
-            builder.comment("User Interface options").push(CATEGORY_UI);
-            
-            this.learnLanguages = builder
-                .comment("Enable language learning system")
-                .translation("config.millenaire.learn_languages")
-                .define("learnLanguages", true);
-                
-            this.displayNames = builder
-                .comment("Display villager names above their heads")
-                .translation("config.millenaire.display_names")
-                .define("displayNames", true);
-                
-            this.nameDistance = builder
-                .comment("Maximum distance to display villager names")
-                .translation("config.millenaire.name_distance")
-                .defineInRange("nameDistance", 20, 1, 100);
-                
-            this.dialogueDistance = builder
-                .comment("Maximum distance for dialogue interaction")
-                .translation("config.millenaire.dialogue_distance")
-                .defineInRange("dialogueDistance", 5, 1, 50);
-                
-            builder.pop();
-        }
-    }
-    
-    public static class Server {
+        LEARN_LANGUAGES = BUILDER
+            .comment("Whether players can learn languages over time")
+            .define("learnLanguages", true);
+        
+        VILLAGE_ANNOUNCEMENT = BUILDER
+            .comment("Whether villages announce when they have new trades")
+            .define("villageAnnouncementRecipe", false);
+        
+        DISPLAY_NAMES = BUILDER
+            .comment("Whether to display villager names above their heads")
+            .define("displayNames", true);
+        
+        NAME_DISTANCE = BUILDER
+            .comment("Maximum distance to display villager names")
+            .defineInRange("nameDistance", 20, 1, 100);
+        
+        DIALOGUE_DISTANCE = BUILDER
+            .comment("Maximum distance to start a dialogue")
+            .defineInRange("dialogueDistance", 5, 1, 50);
+        
+        BUILDER.pop();
+        
         // World Generation
-        public final ModConfigSpec.BooleanValue generateVillages;
-        public final ModConfigSpec.BooleanValue generateLoneBuildings;
-        public final ModConfigSpec.IntValue minVillageDistance;
-        public final ModConfigSpec.IntValue spawnDistance;
+        BUILDER.comment("World Generation").push("worldgen");
         
-        public Server(ModConfigSpec.Builder builder) {
-            builder.comment("World generation options").push(CATEGORY_WORLDGEN);
-            
-            this.generateVillages = builder
-                .comment("Generate Millenaire villages in the world")
-                .translation("config.millenaire.generate_villages")
-                .define("generateVillages", true);
-                
-            this.generateLoneBuildings = builder
-                .comment("Generate lone buildings in the world")
-                .translation("config.millenaire.generate_lone_buildings")
-                .define("generateLoneBuildings", true);
-                
-            this.minVillageDistance = builder
-                .comment("Minimum distance between villages (in blocks)")
-                .translation("config.millenaire.min_village_distance")
-                .defineInRange("minVillageDistance", 600, 100, 5000);
-                
-            this.spawnDistance = builder
-                .comment("Distance from world spawn where villages won't generate (in blocks)")
-                .translation("config.millenaire.spawn_distance")
-                .defineInRange("spawnDistance", 500, 100, 5000);
-                
-            builder.pop();
-        }
-    }
-    
-    public static class Common {
+        GENERATE_VILLAGES = BUILDER
+            .comment("Whether to generate villages")
+            .define("generateVillages", true);
+        
+        GENERATE_LONE_BUILDINGS = BUILDER
+            .comment("Whether to generate lone buildings")
+            .define("generateLoneBuildings", true);
+        
+        MIN_VILLAGE_DISTANCE = BUILDER
+            .comment("Minimum distance between villages")
+            .defineInRange("minVillageDistance", 600, 100, 5000);
+        
+        MIN_LONE_DISTANCE = BUILDER
+            .comment("Minimum distance between lone buildings")
+            .defineInRange("minLoneDistance", 600, 100, 5000);
+        
+        MIN_VILLAGE_LONE_DISTANCE = BUILDER
+            .comment("Minimum distance between villages and lone buildings")
+            .defineInRange("minVillageLoneDistance", 300, 50, 2500);
+        
+        SPAWN_DISTANCE = BUILDER
+            .comment("Distance from spawn where villages generate")
+            .defineInRange("spawnDistance", 200, 0, 1000);
+        
+        BUILDER.pop();
+        
         // Village Behavior
-        public final ModConfigSpec.BooleanValue villageAnnouncement;
-        public final ModConfigSpec.IntValue loadedRadius;
-        public final ModConfigSpec.IntValue maxChildren;
-        public final ModConfigSpec.BooleanValue buildPaths;
-        public final ModConfigSpec.ConfigValue<String> forbiddenBlocks;
+        BUILDER.comment("Village Behavior").push("villagebehavior");
         
-        public Common(ModConfigSpec.Builder builder) {
-            builder.comment("Village behavior options").push(CATEGORY_VILLAGE);
-            
-            this.villageAnnouncement = builder
-                .comment("Announce village discoveries in chat")
-                .translation("config.millenaire.village_announcement")
-                .define("villageAnnouncement", false);
-                
-            this.loadedRadius = builder
-                .comment("Radius around player where villages are loaded (in blocks)")
-                .translation("config.millenaire.loaded_radius")
-                .defineInRange("loadedRadius", 200, 50, 1000);
-                
-            this.maxChildren = builder
-                .comment("Maximum number of children per village")
-                .translation("config.millenaire.max_children")
-                .defineInRange("maxChildren", 10, 1, 50);
-                
-            this.buildPaths = builder
-                .comment("Allow villages to build paths between buildings")
-                .translation("config.millenaire.build_paths")
-                .define("buildPaths", true);
-                
-            this.forbiddenBlocks = builder
-                .comment("List of blocks that villagers cannot use for construction (comma-separated)")
-                .translation("config.millenaire.forbidden_blocks")
-                .define("forbiddenBlocks", "minecraft:bedrock,minecraft:barrier");
-                
-            builder.pop();
+        LOADED_RADIUS = BUILDER
+            .comment("Radius around player where villages are active")
+            .defineInRange("loadedRadius", 200, 50, 1000);
+        
+        MIN_BUILDING_DISTANCE = BUILDER
+            .comment("Minimum distance between buildings")
+            .defineInRange("minBuildingDistance", 2, 1, 10);
+        
+        MAX_CHILDREN = BUILDER
+            .comment("Maximum children per village")
+            .defineInRange("maxChildren", 10, 1, 50);
+        
+        BUILD_PATHS = BUILDER
+            .comment("Whether villages build paths")
+            .define("buildPaths", true);
+        
+        VILLAGE_RELATION_DISTANCE = BUILDER
+            .comment("Distance for village relations")
+            .defineInRange("villageRelationDistance", 2000, 500, 10000);
+        
+        BANDIT_RAID_DISTANCE = BUILDER
+            .comment("Distance for bandit raids")
+            .defineInRange("banditRaidDistance", 1500, 500, 10000);
+        
+        RAID_PERCENT_CHANCE = BUILDER
+            .comment("Chance of raids")
+            .defineInRange("raidPercentChance", 20, 0, 100);
+        
+        FORBIDDEN_BLOCKS = BUILDER
+            .comment("List of forbidden blocks")
+            .define("forbiddenBlocks", "forbidden: ");
+        
+        BUILDER.pop();
+        
+        SPEC = BUILDER.build();
+    }
+    
+    public static void preinitialize() {
+        // Load config values
+        loadConfig();
+    }
+    
+    public static void eventRegister(IEventBus modEventBus) {
+        // Register config events
+        modEventBus.addListener(MillConfig::onConfigLoad);
+        modEventBus.addListener(MillConfig::onConfigReload);
+    }
+    
+    public static void loadConfig() {
+        // Map the ModConfigSpec values to the static fields for backward compatibility
+        learnLanguages = LEARN_LANGUAGES.get();
+        villageAnnouncement = VILLAGE_ANNOUNCEMENT.get();
+        displayNames = DISPLAY_NAMES.get();
+        nameDistance = NAME_DISTANCE.get();
+        dialogueDistance = DIALOGUE_DISTANCE.get();
+        
+        generateVillages = GENERATE_VILLAGES.get();
+        generateLoneBuildings = GENERATE_LONE_BUILDINGS.get();
+        minVillageDistance = MIN_VILLAGE_DISTANCE.get();
+        minLoneDistance = MIN_LONE_DISTANCE.get();
+        minVillageLoneDistance = MIN_VILLAGE_LONE_DISTANCE.get();
+        spawnDistance = SPAWN_DISTANCE.get();
+        
+        loadedRadius = LOADED_RADIUS.get();
+        minBuildingDistance = MIN_BUILDING_DISTANCE.get();
+        maxChildren = MAX_CHILDREN.get();
+        buildPaths = BUILD_PATHS.get();
+        villageRelationDistance = VILLAGE_RELATION_DISTANCE.get();
+        banditRaidDistance = BANDIT_RAID_DISTANCE.get();
+        raidPercentChance = RAID_PERCENT_CHANCE.get();
+        forbiddenBlocks = FORBIDDEN_BLOCKS.get();
+    }
+    
+    @SubscribeEvent
+    public static void onConfigReload(ModConfigEvent.Reloading event) {
+        if (event.getConfig().getModId().equals(Millenaire.MODID)) {
+            loadConfig();
+            System.out.println("Reloaded Millenaire Config");
         }
     }
     
-    // Méthodes d'accès statiques pour compatibilité avec ton code existant
-    public static boolean learnLanguages() {
-        return CLIENT.learnLanguages.get();
-    }
-    
-    public static boolean villageAnnouncement() {
-        return COMMON.villageAnnouncement.get();
-    }
-    
-    public static boolean displayNames() {
-        return CLIENT.displayNames.get();
-    }
-    
-    public static int nameDistance() {
-        return CLIENT.nameDistance.get();
-    }
-    
-    public static int dialogueDistance() {
-        return CLIENT.dialogueDistance.get();
-    }
-    
-    public static boolean generateVillages() {
-        return SERVER.generateVillages.get();
-    }
-    
-    public static boolean generateLoneBuildings() {
-        return SERVER.generateLoneBuildings.get();
-    }
-    
-    public static int minVillageDistance() {
-        return SERVER.minVillageDistance.get();
-    }
-    
-    public static int spawnDistance() {
-        return SERVER.spawnDistance.get();
-    }
-    
-    public static int loadedRadius() {
-        return COMMON.loadedRadius.get();
-    }
-    
-    public static int maxChildren() {
-        return COMMON.maxChildren.get();
-    }
-    
-    public static boolean buildPaths() {
-        return COMMON.buildPaths.get();
-    }
-    
-    public static String forbiddenBlocks() {
-        return COMMON.forbiddenBlocks.get();
-    }
-    
-    // Méthode d'initialisation
-    public static void preinitialize() {
-        // L'enregistrement se fait maintenant dans la classe principale du mod
-        // Les valeurs sont chargées automatiquement par NeoForge
+    @SubscribeEvent
+    public static void onConfigLoad(ModConfigEvent.Loading event) {
+        if (event.getConfig().getModId().equals(Millenaire.MODID)) {
+            loadConfig();
+            System.out.println("Loaded Millenaire Config");
+        }
     }
 }

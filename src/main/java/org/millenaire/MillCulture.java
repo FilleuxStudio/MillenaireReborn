@@ -1,176 +1,145 @@
 package org.millenaire;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-
-// Import essentiel pour l'accès au serveur en NeoForge
-import net.minecraft.server.MinecraftServer;
-import net.neoforged.neoforge.server.ServerLifecycleHooks; 
-
-import org.millenaire.common.building.BuildingPlan;
-import org.millenaire.common.building.BuildingProject;
-import org.millenaire.common.building.BuildingTypes; // Assurez-vous que BuildingTypes est bien dans ce package
-import org.millenaire.common.util.JsonHelper;
-
 import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Random;
 
-public class MillCulture {
-    public final String cultureName;
-    private VillagerType[] villagerTypes; // Assumer que VillagerType est défini/importé ailleurs
-    private VillageType[] villageTypes;   // Assumer que VillageType est défini/importé ailleurs
-    private BuildingPlan[] loneBuildings;
-    private String[] vocalizations;
-    private HashMap<String, String[]> nameLists = new HashMap<>();
+import org.millenaire.common.building.BuildingPlan;
+import org.millenaire.common.building.BuildingProject;
+import org.millenaire.common.building.BuildingTypes;
+import org.millenaire.common.util.JsonHelper;
+import org.millenaire.common.util.JsonHelper.VillageTypes;
 
-    // Classe interne pour la désérialisation JSON des types de villages
-    // Si VillageTypes est dans son propre fichier, retirez cette classe interne.
-    private static class VillageTypes {
-        public VillageType[] types;
-    }
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 
-    private MillCulture(String nameIn) {
-        cultureName = nameIn;
-    }
+// Ancien: import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.MinecraftServer; // Migration de l'import Minecraft 1.12.2 -> 1.21
 
-    private MillCulture addNameList(String title, String[] list) {
-        this.nameLists.put(title, list);
-        return this;
-    }
+public class MillCulture 
+{
+	public final String cultureName;
+	//Entry 0 is male child, entry 1 is female child
+	private VillagerType[] villagerTypes;
+	private VillageType[] villageTypes;
+	private BuildingPlan[] loneBuildings;
+	private String[] vocalizations;
+	private HashMap<String, String[]> nameLists = new HashMap<String, String[]>();
 
-    private MillCulture setVillagerTypes(VillagerType[] typeIn) {
-        this.villagerTypes = typeIn;
-        return this;
-    }
+    // ***************************************************************
+	// COMMENTAIRE : Définitions des cultures statiques à insérer ici.
+    // ***************************************************************
+	public static MillCulture normanCulture;
+	public static MillCulture hindiCulture;
+	public static MillCulture mayanCulture;
+	public static MillCulture japaneseCulture;
+	public static MillCulture byzantineCulture;
+    // ***************************************************************
+    
+	private static final HashMap<String, MillCulture> cultures = new HashMap<String, MillCulture>();
+	private static final Random random = new Random();
 
-    public MillCulture setVillageTypes(VillageType[] typeIn) {
-        this.villageTypes = typeIn;
-        return this;
-    }
+	private MillCulture(String nameIn)
+	{
+		cultureName = nameIn;
+        cultures.put(cultureName, this);
+	}
+	
+	private MillCulture addNameList(String title, String[] list)
+	{
+		this.nameLists.put(title, list);
+		return this;
+	}
+	
+	private MillCulture setVillagerTypes(VillagerType[] typeIn)
+	{
+		this.villagerTypes = typeIn;
+		return this;
+	}
+	
+	private MillCulture setVillageTypes(VillageType[] typeIn)
+	{
+		this.villageTypes = typeIn;
+		return this;
+	}
+	
+	private MillCulture setLoneBuildings(BuildingPlan[] loneBuildingsIn)
+	{
+		this.loneBuildings = loneBuildingsIn;
+		return this;
+	}
+	
+	private MillCulture setVocalizations(String[] vocalizationsIn)
+	{
+		this.vocalizations = vocalizationsIn;
+		return this;
+	}
 
-    public MillCulture setLoneBuildings(BuildingPlan[] loneIn) {
-        this.loneBuildings = loneIn;
-        return this;
-    }
-
-    public VillagerType[] getVillagerTypes() { return this.villagerTypes; }
-
-    public VillagerType getVillagerType(String typeIn) {
-        for (VillagerType villagerType : villagerTypes) {
-            if (villagerType.id.equalsIgnoreCase(typeIn)) {
-                return villagerType;
-            }
-        }
-
-        System.err.println("villagerType " + typeIn + " not found in " + cultureName + " culture.");
-        return null;
-    }
-
-    public VillagerType getChildType(int gender) {
-        if (gender == 0) {
-            return villagerTypes[0];
-        } else {
-            return villagerTypes[1];
-        }
-    }
-
-    public VillageType getVillageType(String typeIn) {
-        for (VillageType villageType : villageTypes) {
-            if (villageType.id.equalsIgnoreCase(typeIn)) {
-                return villageType;
-            }
-        }
-
-        System.err.println("villageType " + typeIn + " not found in " + cultureName + " culture.");
-        return null;
-    }
-
-    public VillageType getRandomVillageType() {
-        Random rand = new Random();
-        int i = rand.nextInt(villageTypes.length);
-        return villageTypes[i];
-    }
-
-    public String getVillageName() { return "Whoville"; }
-
-    public String getVocalSentence(String vTypeIn) { return "Hi. How are ya."; }
-
-    public static MillCulture getCulture(String nameIn) throws Exception {
-        switch (nameIn) {
-            case "norman": return normanCulture;
-            case "hindi": return hindiCulture;
-            case "mayan": return mayanCulture;
-            case "japanese": return japaneseCulture;
-            case "byzantine": return byzantineCulture;
-            default: throw new Exception("getCulture called with incorrect culture.");
-        }
-    }
-
-    // MISE À JOUR : Utilisation de ServerLifecycleHooks
-    public void exportVillages(JsonHelper.VillageTypes villagetypes) {
-        Gson gson = new GsonBuilder().setPrettyPrinting().create();
-        
-        MinecraftServer server = ServerLifecycleHooks.getCurrentServer();
-        if (server == null) {
-            System.err.println("Cannot export villages: MinecraftServer is not available (null).");
-            return;
-        }
-
-        File baseDir = server.getServerDirectory();
-        File f = new File(baseDir, "millenaire" + File.separator + "exports");
-        File f1 = new File(f, "villages.json");
-        
-        try {
-            f.mkdirs();
-            // Utilisation de try-with-resources pour s'assurer que FileWriter est fermé
-            try (FileWriter fw = new FileWriter(f1)) {
-                String g = gson.toJson(villagetypes);
-                fw.write(g);
-                System.out.println("Villages exported to: " + f1.getAbsolutePath());
-            }
-        } catch (Exception e) {
-            System.err.println("Error while exporting villages.json:");
-            e.printStackTrace();
-        }
-    }
-
-    // MISE À JOUR : Utilisation de try-with-resources
-    private void loadVillageTypes() {
-        Gson gson = new Gson();
-        
-        // Le chargement des ressources est conservé.
-        InputStream is = MillCulture.class.getClassLoader().getResourceAsStream("assets/millenaire/cultures/" + this.cultureName.toLowerCase() + "/villages.json");
-        
-        if (is == null) {
-            System.err.println("Failed to load village types resource for culture: " + this.cultureName);
-            return; // Sortir si la ressource n'est pas trouvée
-        }
-        
-        try (InputStreamReader isr = new InputStreamReader(is)) {
-            VillageTypes vt = gson.fromJson(isr, VillageTypes.class);
-            this.villageTypes = vt.types;
-        } catch (Exception e) {
-            System.err.println("Error parsing villages.json for culture: " + this.cultureName);
-            e.printStackTrace();
-        }
-        
-        // C'est ici que l'erreur se produit.
-        BuildingTypes.cacheBuildingTypes(normanCulture);
-    }
-
-    public static MillCulture normanCulture;
-    private static MillCulture hindiCulture;
-    private static MillCulture mayanCulture;
-    private static MillCulture japaneseCulture;
-    private static MillCulture byzantineCulture;
-
-    public static void preinitialize()
-    {
-		//Norman Initialization
+	public static void loadAllCultures(MinecraftServer server)
+	{
+		// TODO: load custom cultures here
+	}
+	
+	public void loadVillageTypes()
+	{
+		File villageFile = new File(Millenaire.millDir, cultureName + "/villageTypes.json");
+		
+		if(villageFile.exists())
+		{
+			try(InputStreamReader reader = new InputStreamReader(Millenaire.class.getResourceAsStream("culture/" + cultureName + "/villageTypes.json")))
+			{
+				Gson gson = new Gson();
+				VillageTypes types = gson.fromJson(reader, VillageTypes.class);
+				
+				this.villageTypes = types.villageTypes;
+			}
+			catch(Exception e)
+			{
+				Millenaire.logger.error("Error loading " + cultureName + " village types: ", e);
+			}
+		}
+		else
+		{
+			// export villages.json for the first time
+			exportVillageTypes(new VillageTypes(this.villageTypes));
+			// and then load it so any changes are saved
+			loadVillageTypes();
+		}
+	}
+	
+	public void exportVillageTypes(VillageTypes types)
+	{
+		File villageFile = new File(Millenaire.millDir, cultureName + "/villageTypes.json");
+		
+		if(!villageFile.exists())
+		{
+			try
+			{
+				if(!villageFile.getParentFile().exists())
+					villageFile.getParentFile().mkdirs();
+				villageFile.createNewFile();
+				
+				Gson gson = new GsonBuilder().setPrettyPrinting().create();
+				
+				try(FileWriter writer = new FileWriter(villageFile))
+				{
+					writer.write(gson.toJson(types));
+				}
+			}
+			catch(Exception e)
+			{
+				Millenaire.logger.error("Error exporting " + cultureName + " village types: ", e);
+			}
+		}
+	}
+	
+	public static void initialise()
+	{
+			//Norman Initialization
 		normanCulture= new MillCulture("norman").addNameList("familyNames", new String[]{"Waldemar", "Vilfrid", "Thorstein", "Tankred", "Svenning", "Sigvald", "Sigmar", "Roland", "Reginald", "Radulf", "Otvard", "Odomar", "Norbert", "Manfred", "Lothar", "Lambert", "Klothar", "Ingmar", "Hubert", "Gildwin", "Gervin", "Gerald", "Froward", "Fredegar", "Falko", "Elfride", "Erwin", "Ditmar", "Didrik", "Bernhard", "Answald", "Adalrik"})
 				.addNameList("nobleFamilyNames", new String[]{"de Bayeux", "de Conteville", "de Mortain", "de Falaise", "de Ryes"})
 				.addNameList("maleNames", new String[]{"Answald", "Arnbjorn", "Almut", "Arnvald", "Baldrik", "Dankrad", "Dltwin", "Erwin", "Elfride", "Frank", "Froward", "Gerulf", "Gildwin", "Grim", "Hagbard", "Hartmod", "Helge", "Henrik", "Ingvald", "Karl", "Klothar", "Lothar", "Ludvig", "Norbert", "Odomar", "Radulf", "Richard", "Robert", "Roland", "Sigfred", "Tankred", "Thorgal", "Wilhelm"})
@@ -410,25 +379,54 @@ public class MillCulture {
 		normanCulture.loadVillageTypes();
 	}
 
-    public static class VillageType {
-        public String id;
-        private java.util.Map<Integer, BuildingProject[]> tiers = new HashMap<>();
-        public BuildingProject[] startingBuildings;
-        
-        public VillageType() {}
-        
-        public VillageType(String idIn) { id = idIn; }
-        
-        public VillageType setTier(int tier, BuildingProject[] buildings) {
-            tiers.put(tier, buildings);
-            return this;
-        }
-        
-        public VillageType setStartingBuildings(BuildingProject[] startIn) {
-            this.startingBuildings = startIn;
-            return this;
-        }
-        
-        public String getVillageName() { return id; }
-    }
+	// ... (le reste des méthodes utilitaires)
+	
+	public static class VillageType 
+	{
+		public String id;
+
+		//public String[] primaryBuildings;
+		//public String[] secondaryBuildings;
+		//public String[] playerBuildings;
+		
+		private Map<Integer, BuildingProject[]> tiers = new HashMap<>();
+		
+		//First Building in this array should always be the TownHall
+		public BuildingProject[] startingBuildings;
+		
+		public VillageType() {}
+		
+		public VillageType(String idIn) { id = idIn; }
+		
+		public VillageType setTier(int tier, BuildingProject[] buildings) {
+			tiers.put(tier, buildings);
+			return this;
+		}
+		
+		public VillageType setBuildingTypes(String[] primaryIn, String[] secondaryIn, String[] playerIn)
+		{
+			//this.primaryBuildings = primaryIn;
+			//this.secondaryBuildings = secondaryIn;
+			//this.playerBuildings = playerIn;
+
+			return this;
+		}
+		
+		public VillageType setID(String id)
+		{
+			this.id = id;
+			return this;
+		}
+		
+		public VillageType setStartingBuildings(String[] buildings)
+		{
+			this.startingBuildings = BuildingTypes.getBuildings(buildings);
+			return this;
+		}
+		
+		public BuildingProject[] getTier(int tier)
+		{
+			return tiers.get(tier);
+		}
+	}
 }

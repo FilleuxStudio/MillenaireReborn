@@ -2,7 +2,7 @@ package org.millenaire.common.building;
 
 import com.google.gson.Gson;
 import net.minecraft.resources.ResourceLocation;
-import org.millenaire.common.MillCulture;
+import org.millenaire.MillCulture;
 import org.millenaire.common.util.ItemRateWrapper;
 import org.millenaire.common.util.ResourceLocationUtil;
 
@@ -25,7 +25,7 @@ public class BuildingTypes {
                 String[] buildings = new Gson().fromJson(new InputStreamReader(is), String[].class);
                 
                 for(String building : buildings) {
-                    ResourceLocation loc = ResourceLocation.parse(building);
+                    ResourceLocation loc = ResourceLocation.tryParse(building);
                     InputStream file = MillCulture.class.getClassLoader().getResourceAsStream(
                         "assets/millenaire/cultures/" + loc.getNamespace() + "/buildings/" + loc.getPath() + ".json");
                     if (file != null) {

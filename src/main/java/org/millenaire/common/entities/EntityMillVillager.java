@@ -1,16 +1,25 @@
-package org.millenaire.common.entities;
+package org.millenaire.entities;
 
+import java.util.List;
+
+import org.millenaire.MillCulture;
+import org.millenaire.Millenaire;
+import org.millenaire.VillagerType;
+import org.millenaire.ai.EntityAIGateOpen;
+import org.millenaire.client.gui.MillAchievement;
+import org.millenaire.client.rendering.RenderMillVillager;
+
+import net.minecraft.client.model.HumanoidModel;
+import net.minecraft.client.renderer.entity.EntityRenderer;
+import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.core.BlockPos;
-import net.minecraft.core.NonNullList;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.ListTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.sounds.SoundEvents;
-import net.minecraft.world.ContainerHelper;
+import net.minecraft.server.level.ServerLevel;
+import net.minecraft.world.Container;
 import net.minecraft.world.SimpleContainer;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.EntityType;
@@ -18,50 +27,51 @@ import net.minecraft.world.entity.PathfinderMob;
 import net.minecraft.world.entity.ai.attributes.AttributeSupplier;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.goal.*;
+import net.minecraft.world.entity.ai.navigation.PathNavigation;
+import net.minecraft.world.entity.item.ItemEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.AABB;
-import org.millenaire.common.MillCulture;
-import org.millenaire.common.Millenaire;
-import org.millenaire.common.VillagerType;
-import org.millenaire.common.entities.ai.EntityAIGateOpen;
-
-import java.util.List;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.event.entity.EntityAttributeCreationEvent;
+import net.neoforged.neoforge.registries.DeferredRegister;
+import net.neoforged.neoforge.registries.RegistryObject;
 
 public class EntityMillVillager extends PathfinderMob {
-    private static final EntityDataAccessor<String> TEXTURE = SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.STRING);
-    private static final EntityDataAccessor<Integer> AGE = SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<Integer> GENDER = SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.INT);
-    private static final EntityDataAccessor<String> NAME = SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.STRING);
+    
+    // EntityDataAccessors remplacent DataWatcher
+    private static final EntityDataAccessor<String> DATA_TEXTURE = 
+        SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.STRING);
+    private static final EntityDataAccessor<Integer> DATA_AGE = 
+        SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Integer> DATA_GENDER = 
+        SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<String> DATA_NAME = 
+        SynchedEntityData.defineId(EntityMillVillager.class, EntityDataSerializers.STRING);
 
     public int villagerID;
     private MillCulture culture;
     private VillagerType type;
-    
+
     private boolean isVillagerSleeping = false;
     public boolean isPlayerInteracting = false;
     
-    private final SimpleContainer villagerInventory;
+    private SimpleContainer villagerInventory;
     
-    public EntityMillVillager(EntityType<? extends PathfinderMob> type, Level level) {
-        super(type, level);
+    public EntityMillVillager(EntityType<? extends EntityMillVillager> entityType, Level level) {
+        super(entityType, level);
         this.villagerInventory = new SimpleContainer(16);
-        this.setPersistenceRequired();
+        this.fireImmune();
     }
 
-    public EntityMillVillager(Level level, int idIn, MillCulture cultureIn) {
-        this(MillEntities.MILL_VILLAGER.get(), level);
-        villagerID = idIn;
-        culture = cultureIn;
+    public EntityMillVillager(EntityType<? extends EntityMillVillager> entityType, Level level, 
+                             int idIn, MillCulture cultureIn) {
+        super(entityType, level);
+        this.villagerID = idIn;
+        this.culture = cultureIn;
         this.villagerInventory = new SimpleContainer(16);
-        this.setPersistenceRequired();
-    }
-    
-    public static AttributeSupplier.Builder createAttributes() {
-        return PathfinderMob.createMobAttributes()
-                .add(Attributes.MOVEMENT_SPEED, 0.55D)
-                .add(Attributes.MAX_HEALTH, 20.0D);
+        this.fireImmune();
     }
     
     @Override
@@ -69,45 +79,56 @@ public class EntityMillVillager extends PathfinderMob {
         this.goalSelector.addGoal(0, new FloatGoal(this));
         this.goalSelector.addGoal(1, new OpenDoorGoal(this, true));
         this.goalSelector.addGoal(1, new EntityAIGateOpen(this, true));
-        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 3.0F, 0.5F));
+        this.goalSelector.addGoal(7, new LookAtPlayerGoal(this, Player.class, 3.0F));
         this.goalSelector.addGoal(8, new LookAtPlayerGoal(this, EntityMillVillager.class, 6.0F));
         this.goalSelector.addGoal(9, new RandomStrollGoal(this, 0.6D));
     }
     
     @Override
-    protected void defineSynchedData() {
-        super.defineSynchedData();
-        this.entityData.define(TEXTURE, "texture");
-        this.entityData.define(NAME, "name");
-        this.entityData.define(AGE, 0);
-        this.entityData.define(GENDER, 0);
+    protected PathNavigation createNavigation(Level level) {
+        return new MillPathNavigate(this, level);
+    }
+    
+    public static AttributeSupplier.Builder createAttributes() {
+        return PathfinderMob.createMobAttributes()
+            .add(Attributes.MOVEMENT_SPEED, 0.55D)
+            .add(Attributes.MAX_HEALTH, 20.0D);
+    }
+    
+    @Override
+    protected void defineSynchedData(SynchedEntityData.Builder builder) {
+        super.defineSynchedData(builder);
+        builder.define(DATA_TEXTURE, "texture");
+        builder.define(DATA_NAME, "name");
+        builder.define(DATA_AGE, 0); // 0 = Adult
+        builder.define(DATA_GENDER, 0); // 0 = male, 1 = female, 2 = Sym Female
     }
     
     public EntityMillVillager setTypeAndGender(VillagerType typeIn, int genderIn) {
         this.type = typeIn;
-        this.entityData.set(GENDER, genderIn);
-        this.entityData.set(TEXTURE, typeIn.getTexture());
+        this.entityData.set(DATA_GENDER, genderIn);
+        this.entityData.set(DATA_TEXTURE, type.getTexture());
         return this;
     }
     
     public void setChild() { 
-        this.entityData.set(AGE, 1); 
+        this.entityData.set(DATA_AGE, 1); 
     }
     
-    public void setName(String nameIn) { 
-        this.entityData.set(NAME, nameIn); 
+    public void setVillagerName(String nameIn) { 
+        this.entityData.set(DATA_NAME, nameIn); 
     }
     
     public String getTexture() { 
-        return this.entityData.get(TEXTURE); 
+        return this.entityData.get(DATA_TEXTURE); 
     }
     
     public int getGender() { 
-        return this.entityData.get(GENDER); 
+        return this.entityData.get(DATA_GENDER); 
     }
     
-    public String getName() { 
-        return this.entityData.get(NAME); 
+    public String getVillagerName() { 
+        return this.entityData.get(DATA_NAME); 
     }
 
     public VillagerType getVillagerType() { 
@@ -116,7 +137,7 @@ public class EntityMillVillager extends PathfinderMob {
     
     @Override
     public boolean isBaby() { 
-        return (this.entityData.get(AGE) > 0); 
+        return this.entityData.get(DATA_AGE) > 0; 
     }
     
     @Override
@@ -125,68 +146,60 @@ public class EntityMillVillager extends PathfinderMob {
     }
     
     @Override
-    public void die(DamageSource cause) {
-        super.die(cause);
-        if (!this.level().isClientSide) {
-            ContainerHelper.dropContents(this.level(), this.blockPosition(), this.villagerInventory);
+    protected void dropCustomDeathLoot(ServerLevel level, DamageSource damageSource, boolean recentlyHit) {
+        super.dropCustomDeathLoot(level, damageSource, recentlyHit);
+        for (int i = 0; i < this.villagerInventory.getContainerSize(); i++) {
+            ItemStack stack = this.villagerInventory.getItem(i);
+            if (!stack.isEmpty()) {
+                this.spawnAtLocation(stack);
+            }
         }
     }
     
     @Override
-    protected void pickUpItem(org.minecraft.world.entity.item.ItemEntity itemEntity) {
-        // Custom pickup logic can be implemented here
+    protected void pickUpItem(ItemEntity itemEntity) {
+        // Contrôle ce que fait le villageois quand il rencontre un item au sol
+        // À implémenter selon la logique du mod
     }
     
     @Override
     public boolean removeWhenFarAway(double distanceToClosestPlayer) {
-        return false;
+        return false; // Les villageois ne despawn jamais
     }
     
     @Override
-    public boolean hurt(DamageSource source, float amount) {
-        // Custom damage handling can be implemented here
-        return super.hurt(source, amount);
-    }
-    
-    public void faceDirection() {
-        // Face an Entity or specific BlockPos when we want them to
+    protected int getExperienceReward(ServerLevel level) {
+        // return type.expGiven;
+        return super.getExperienceReward(level);
     }
     
     @Override
-    public int getExperienceReward() {
-        // return villagertype.expgiven;
-        return super.getExperienceReward();
+    public boolean canBeAffected(net.minecraft.world.effect.MobEffectInstance effect) {
+        return true;
     }
     
-    @Override
-    public boolean interact(Player player) {
-        // Achievement system removed in 1.21, need alternative
-        // player.awardStat(MillAchievement.FIRST_CONTACT);
-        
-        if (type != null && type.hireCost > 0) {
-            this.isPlayerInteracting = true;
-            if (player instanceof ServerPlayer serverPlayer) {
-                // Open GUI - need to implement custom menu system
-                // serverPlayer.openMenu(...);
+    public boolean interact(Player playerIn) {
+        if (!this.level().isClientSide) {
+            playerIn.awardStat(MillAchievement.firstContact);
+            
+            if (type.hireCost > 0) {
+                this.isPlayerInteracting = true;
+                // playerIn.openMenu(...) pour ouvrir le GUI
+                return true;
             }
-            return true;
-        }
-        
-        if (type != null && type.isChief) {
-            this.isPlayerInteracting = true;
-            if (player instanceof ServerPlayer serverPlayer) {
-                // Open GUI - need to implement custom menu system
-                // serverPlayer.openMenu(...);
+            
+            if (type.isChief) {
+                this.isPlayerInteracting = true;
+                // playerIn.openMenu(...) pour ouvrir le GUI du chef
+                return true;
             }
-            return true;
         }
-        
         return false;
     }
     
     @Override
     protected boolean isImmobile() {
-        return this.getHealth() <= 0 || this.isVillagerSleeping || this.isPlayerInteracting;
+        return !this.isAlive() || this.isVillagerSleeping || this.isPlayerInteracting;
     }
     
     @Override
@@ -195,113 +208,112 @@ public class EntityMillVillager extends PathfinderMob {
         this.updateSwingTime();
 
         if (isVillagerSleeping) {
-            this.setDeltaMovement(0, 0, 0);
+            this.setDeltaMovement(0, this.getDeltaMovement().y, 0);
         }
     }
     
     @Override
     public void tick() {
-        if (this.isDeadOrDying()) {
+        if (!this.isAlive()) {
             super.tick();
             return;
         }
         
         if (isPlayerInteracting) {
-            List<Player> playersNear = this.level().getEntitiesOfClass(Player.class, 
-                new AABB(getX() - 5, getY() - 1, getZ() - 5, getX() + 5, getY() + 1, getZ() + 5));
+            List<Player> playersNear = this.level().getEntitiesOfClass(
+                Player.class, 
+                new AABB(
+                    this.getX() - 5, this.getY() - 1, this.getZ() - 5,
+                    this.getX() + 5, this.getY() + 1, this.getZ() + 5
+                )
+            );
             
             if (playersNear.isEmpty()) {
                 isPlayerInteracting = false;
             }
         }
 
-        // Add custom AI logic here
-        
         super.tick();
     }
     
     @Override
-    public void addAdditionalSaveData(CompoundTag compound) {
-        super.addAdditionalSaveData(compound);
-        compound.putInt("villagerID", villagerID);
-        if (culture != null) {
-            compound.putString("culture", culture.cultureName);
-        }
-        compound.putInt("gender", this.entityData.get(GENDER));
-        if (type != null) {
-            compound.putString("villagerType", type.id);
-        }
-        compound.putBoolean("sleeping", isVillagerSleeping);
+    public void addAdditionalSaveData(CompoundTag nbt) {
+        super.addAdditionalSaveData(nbt);
+        nbt.putInt("villagerID", villagerID);
+        nbt.putString("culture", culture != null ? culture.cultureName : "");
+        nbt.putInt("gender", this.entityData.get(DATA_GENDER));
+        nbt.putString("villagerType", type != null ? type.id : "");
+        nbt.putBoolean("sleeping", isVillagerSleeping);
         
-        compound.putString("texture", this.entityData.get(TEXTURE));
-        compound.putInt("age", this.entityData.get(AGE));
-        compound.putString("name", this.entityData.get(NAME));
+        nbt.putString("texture", this.entityData.get(DATA_TEXTURE));
+        nbt.putInt("age", this.entityData.get(DATA_AGE));
+        nbt.putString("name", this.entityData.get(DATA_NAME));
         
-        ListTag nbttaglist = new ListTag();
-        for (int i = 0; i < this.villagerInventory.getContainerSize(); ++i) {
-            ItemStack itemstack = this.villagerInventory.getItem(i);
-            if (!itemstack.isEmpty()) {
-                nbttaglist.add(itemstack.save(new CompoundTag()));
+        ListTag inventoryList = new ListTag();
+        for (int i = 0; i < this.villagerInventory.getContainerSize(); i++) {
+            ItemStack stack = this.villagerInventory.getItem(i);
+            if (!stack.isEmpty()) {
+                CompoundTag itemTag = new CompoundTag();
+                itemTag.putByte("Slot", (byte) i);
+                inventoryList.add(stack.save(this.registryAccess(), itemTag));
             }
         }
-        compound.put("Inventory", nbttaglist);
+        nbt.put("Inventory", inventoryList);
     }
     
     @Override
-    public void readAdditionalSaveData(CompoundTag compound) {
-        super.readAdditionalSaveData(compound);
-        villagerID = compound.getInt("villagerID");
+    public void readAdditionalSaveData(CompoundTag nbt) {
+        super.readAdditionalSaveData(nbt);
+        villagerID = nbt.getInt("villagerID");
+        
         try {
-            culture = MillCulture.getCulture(compound.getString("culture"));
+            String cultureName = nbt.getString("culture");
+            if (!cultureName.isEmpty()) {
+                culture = MillCulture.getCulture(cultureName);
+            }
         } catch (Exception ex) {
-            System.err.println("Villager failed to read from NBT correctly");
+            System.err.println("Villager failed to read culture from NBT");
             ex.printStackTrace();
         }
         
         if (culture != null) {
-            this.entityData.set(GENDER, compound.getInt("gender"));
-            type = culture.getVillagerType(compound.getString("villagerType"));
-            isVillagerSleeping = compound.getBoolean("sleeping");
-            
-            this.entityData.set(TEXTURE, compound.getString("texture"));
-            this.entityData.set(AGE, compound.getInt("age"));
-            this.entityData.set(NAME, compound.getString("name"));
-            
-            if (compound.contains("Inventory", 9)) {
-                ListTag nbttaglist = compound.getList("Inventory", 10);
-                for (int i = 0; i < nbttaglist.size(); ++i) {
-                    ItemStack itemstack = ItemStack.of(nbttaglist.getCompound(i));
-                    if (!itemstack.isEmpty()) {
-                        this.villagerInventory.addItem(itemstack);
-                    }
-                }
+            this.entityData.set(DATA_GENDER, nbt.getInt("gender"));
+            String typeId = nbt.getString("villagerType");
+            if (!typeId.isEmpty()) {
+                type = culture.getVillagerType(typeId);
+            }
+        }
+        
+        isVillagerSleeping = nbt.getBoolean("sleeping");
+        
+        this.entityData.set(DATA_TEXTURE, nbt.getString("texture"));
+        this.entityData.set(DATA_AGE, nbt.getInt("age"));
+        this.entityData.set(DATA_NAME, nbt.getString("name"));
+        
+        ListTag inventoryList = nbt.getList("Inventory", 10);
+        for (int i = 0; i < inventoryList.size(); i++) {
+            CompoundTag itemTag = inventoryList.getCompound(i);
+            int slot = itemTag.getByte("Slot") & 255;
+            ItemStack stack = ItemStack.parseOptional(this.registryAccess(), itemTag);
+            if (slot >= 0 && slot < this.villagerInventory.getContainerSize()) {
+                this.villagerInventory.setItem(slot, stack);
             }
         }
     }
     
     @Override
     public String toString() {
-        return this.getClass().getSimpleName() + "@" + ": " + getName() + "/" + this.villagerID + "/" + level();
+        return this.getClass().getSimpleName() + "@" + ": " + getVillagerName() + 
+               "/" + this.villagerID + "/" + level();
     }
     
-    private void updateHired() {
-        // find target (base this on stance, change stance in onInteract)
-        // pathFind to entity you want to attack (or following player)
-        // handle doors and fence gates
+    // Méthode pour l'enregistrement des attributs (appelée lors du setup)
+    public static void registerAttributes(EntityAttributeCreationEvent event, EntityType<EntityMillVillager> entityType) {
+        event.put(entityType, createAttributes().build());
     }
     
-    @Override
-    protected SoundEvent getHurtSound(DamageSource damageSource) {
-        return SoundEvents.VILLAGER_HURT;
-    }
-    
-    @Override
-    protected SoundEvent getDeathSound() {
-        return SoundEvents.VILLAGER_DEATH;
-    }
-    
-    @Override
-    protected SoundEvent getAmbientSound() {
-        return SoundEvents.VILLAGER_AMBIENT;
+    // Méthode pour l'enregistrement du renderer (appelée lors du setup client)
+    public static void registerRenderer(EntityRenderersEvent.RegisterRenderers event, EntityType<EntityMillVillager> entityType) {
+        event.registerEntityRenderer(entityType, RenderMillVillager::new);
     }
 }

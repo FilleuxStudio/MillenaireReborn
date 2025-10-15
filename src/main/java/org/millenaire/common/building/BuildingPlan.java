@@ -8,9 +8,9 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.Blocks;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.properties.Property;
-import org.millenaire.common.CommonUtilities;
-import org.millenaire.common.MillCulture;
-import org.millenaire.common.VillageGeography;
+import org.millenaire.CommonUtilities;
+import org.millenaire.MillCulture;
+import org.millenaire.VillageGeography;
 import org.millenaire.common.blocks.MillBlocks;
 import org.millenaire.common.pathing.MillPathNavigate;
 

@@ -3,7 +3,7 @@ package org.millenaire.common.building;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.resources.ResourceLocation;
-import org.millenaire.common.MillConfig;
+import org.millenaire.MillConfig;
 import org.millenaire.common.entities.EntityMillVillager;
 
 import java.util.List;
